@@ -1,12 +1,13 @@
 import type { CSSProperties } from "react";
-import type { DashboardSnapshot, DashboardTicket } from "../../lib/dashboardTypes";
-import { AUTO_RELEASE_MS, teamLabel } from "../../lib/dashboardConstants";
+import type {
+  AutoReleaseScheduleEntry,
+  DashboardSnapshot,
+  DashboardTicket,
+} from "../../lib/dashboardTypes";
+import { teamLabel } from "../../lib/dashboardConstants";
 import { getAgentAccentColor } from "../../lib/agentAccentColors";
 import { QueueTeamIcon } from "../../lib/queueTeamIcons";
-import {
-  formatTicketDateTime,
-  getAutoReleaseDeadlineMs,
-} from "../../lib/ticketDisplayUtils";
+import { formatTicketDateTime } from "../../lib/ticketDisplayUtils";
 
 type OpenTicketRowProps = {
   ticket: DashboardTicket;
@@ -14,6 +15,7 @@ type OpenTicketRowProps = {
   pending: string | null;
   queueSimulateKey: "cards" | "loans" | "other" | "mixed" | null;
   autoReleaseEnabled: boolean;
+  releaseEntry: AutoReleaseScheduleEntry | undefined;
   onComplete: (id: string) => Promise<void>;
 };
 
@@ -23,11 +25,14 @@ export default function OpenTicketRow({
   pending,
   queueSimulateKey,
   autoReleaseEnabled,
+  releaseEntry,
   onComplete,
 }: OpenTicketRowProps) {
   const busy = !!pending || !!queueSimulateKey;
-  const timeoutMs = getAutoReleaseDeadlineMs(t);
-  const showCountdown = autoReleaseEnabled && timeoutMs !== null;
+  const deadlineMs = releaseEntry?.deadlineMs;
+  const durationMs = releaseEntry?.durationMs ?? 1;
+  const showCountdown =
+    autoReleaseEnabled && releaseEntry !== undefined && deadlineMs !== undefined;
   const agentAccent =
     t.status === "active"
       ? getAgentAccentColor(t.agentId, snapshot.agents)
@@ -81,7 +86,7 @@ export default function OpenTicketRow({
                       100,
                       Math.max(
                         0,
-                        ((timeoutMs - Date.now()) / AUTO_RELEASE_MS) * 100
+                        ((deadlineMs - Date.now()) / durationMs) * 100
                       )
                     )}%`,
                     ...(agentAccent
@@ -94,7 +99,7 @@ export default function OpenTicketRow({
               </div>
               <span className="countdownText">
                 {(() => {
-                  const d = timeoutMs - Date.now();
+                  const d = deadlineMs - Date.now();
                   if (d <= 0) {
                     return "Liberando…";
                   }
