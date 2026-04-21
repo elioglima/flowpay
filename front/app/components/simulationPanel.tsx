@@ -1,5 +1,6 @@
 import {
-  AUTO_RELEASE_MS,
+  AUTO_RELEASE_MS_MAX,
+  AUTO_RELEASE_MS_MIN,
   mixedBatchByTeam,
   QUEUE_SIMULATE_BURST,
 } from "../../lib/dashboardConstants";
@@ -63,9 +64,10 @@ export default function SimulationPanel({
           onChange={(e) => onAutoReleaseChange(e.target.checked)}
         />
         <span>
-          Simulação: encerrar cada atendimento ativo automaticamente após{" "}
-          {AUTO_RELEASE_MS / 1000}s (cada ticket com o seu timer; até 3 por
-          atendente)
+          Simulação: encerrar cada atendimento ativo automaticamente após um
+          intervalo aleatório entre {AUTO_RELEASE_MS_MIN / 1000} e{" "}
+          {AUTO_RELEASE_MS_MAX / 1000}s por pedido (cada ticket com o seu timer;
+          até 3 por atendente)
         </span>
       </label>
       <p className="testBlockTitle">Pedido único (roteamento)</p>
