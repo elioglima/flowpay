@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  AutoReleaseScheduleEntry,
   ClosedTicketsPage,
   DashboardSnapshot,
 } from "../lib/dashboardTypes";
@@ -17,7 +18,8 @@ import {
   SUBJECT_LOAN_CONTRACT,
   SUBJECT_OTHER_SAMPLE,
 } from "../lib/subjectCatalog";
-import { getAutoReleaseDeadlineMs } from "../lib/ticketDisplayUtils";
+import { randomAutoReleaseDurationMs } from "../lib/autoReleaseRandomUtils";
+import { getActiveServiceStartMs } from "../lib/ticketDisplayUtils";
 import ClosedTicketsPanel from "./components/closedTicketsPanel";
 import DashboardFooter from "./components/dashboardFooter";
 import DashboardHeader from "./components/dashboardHeader";
@@ -46,6 +48,9 @@ export default function DashboardShell() {
   const [resetBusy, setResetBusy] = useState(false);
   const [openPage, setOpenPage] = useState(1);
   const autoTriggered = useRef(new Set<string>());
+  const [releaseSchedule, setReleaseSchedule] = useState<
+    Record<string, AutoReleaseScheduleEntry>
+  >({});
 
   const applyPayload = useCallback((data: unknown) => {
     if (
@@ -283,6 +288,33 @@ export default function DashboardShell() {
   }, [snapshot]);
 
   useEffect(() => {
+    if (!snapshot) {
+      setReleaseSchedule({});
+      return;
+    }
+    setReleaseSchedule((prev) => {
+      const active = snapshot.openTickets.filter((x) => x.status === "active");
+      const next: Record<string, AutoReleaseScheduleEntry> = {};
+      for (const t of active) {
+        const existing = prev[t.id];
+        if (existing) {
+          next[t.id] = existing;
+        } else {
+          const start = getActiveServiceStartMs(t);
+          if (start > 0) {
+            const durationMs = randomAutoReleaseDurationMs();
+            next[t.id] = {
+              deadlineMs: start + durationMs,
+              durationMs,
+            };
+          }
+        }
+      }
+      return next;
+    });
+  }, [snapshot]);
+
+  useEffect(() => {
     if (!autoReleaseEnabled || !snapshot) {
       return;
     }
@@ -291,18 +323,18 @@ export default function DashboardShell() {
       if (t.status !== "active") {
         continue;
       }
-      const deadline = getAutoReleaseDeadlineMs(t);
-      if (deadline === null) {
+      const entry = releaseSchedule[t.id];
+      if (!entry) {
         continue;
       }
-      if (now >= deadline && !autoTriggered.current.has(t.id)) {
+      if (now >= entry.deadlineMs && !autoTriggered.current.has(t.id)) {
         autoTriggered.current.add(t.id);
         void completeTicket(t.id).catch(() => {
           autoTriggered.current.delete(t.id);
         });
       }
     }
-  }, [snapshot, autoReleaseEnabled, tick, completeTicket]);
+  }, [snapshot, autoReleaseEnabled, tick, completeTicket, releaseSchedule]);
 
   return (
     <main className="shell shellWide pageRoot">
@@ -332,6 +364,7 @@ export default function DashboardShell() {
         pending={pending}
         queueSimulateKey={queueSimulateKey}
         autoReleaseEnabled={autoReleaseEnabled}
+        releaseSchedule={releaseSchedule}
         onCompleteTicket={completeTicket}
       />
 
