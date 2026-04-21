@@ -1,5 +1,4 @@
 import type { DashboardTicket } from "./dashboardTypes";
-import { AUTO_RELEASE_MS } from "./dashboardConstants";
 
 export function getActiveServiceStartMs(t: DashboardTicket) {
   if (t.status !== "active") {
@@ -7,17 +6,6 @@ export function getActiveServiceStartMs(t: DashboardTicket) {
   }
   const raw = t.activeAt ?? t.createdAt;
   return raw ? new Date(raw).getTime() : 0;
-}
-
-export function getAutoReleaseDeadlineMs(t: DashboardTicket) {
-  if (t.status !== "active") {
-    return null;
-  }
-  const start = getActiveServiceStartMs(t);
-  if (!start) {
-    return null;
-  }
-  return start + AUTO_RELEASE_MS;
 }
 
 export function ticketCreatedAtMs(t: DashboardTicket) {
