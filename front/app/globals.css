@@ -859,6 +859,89 @@ body {
   font-size: 0.88rem;
 }
 
+.queueGaugeWrap {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.queueGaugeTitle {
+  margin: 0 0 var(--space-3);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.queueGaugeSvgWrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto var(--space-3);
+}
+
+.queueGaugeSvg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.queueGaugeFillArc {
+  transition: stroke-dasharray 0.35s ease-out;
+}
+
+.queueGaugeNeedle {
+  stroke: #f0fdfa;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px rgba(45, 212, 191, 0.55));
+}
+
+.queueGaugePivot {
+  fill: #0f172a;
+  stroke: #5eead4;
+  stroke-width: 2;
+}
+
+.queueGaugeTickLabel {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-inter);
+}
+
+.queueGaugeMeta {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.queueGaugeTotal {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #5eead4;
+  text-shadow: 0 0 18px rgba(45, 212, 191, 0.28);
+}
+
+.queueGaugeSep {
+  margin: 0 0.15em;
+  opacity: 0.6;
+}
+
+.queueGaugeMax {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.queueGaugeHint {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 0.82rem;
+  opacity: 0.92;
+}
+
 .btnSim {
   font-size: 0.92rem;
   padding: var(--space-3) var(--space-4);
