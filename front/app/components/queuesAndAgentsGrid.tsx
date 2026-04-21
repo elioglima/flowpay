@@ -3,6 +3,7 @@ import { teamLabel } from "../../lib/dashboardConstants";
 import { getAgentAccentColor } from "../../lib/agentAccentColors";
 import { AgentUserIcon } from "../../lib/agentUserIcon";
 import { QueueTeamIcon } from "../../lib/queueTeamIcons";
+import QueueLoadGauge from "./queueLoadGauge";
 
 type QueuesAndAgentsGridProps = {
   snapshot: DashboardSnapshot | null;
@@ -39,6 +40,9 @@ export default function QueuesAndAgentsGrid({ snapshot }: QueuesAndAgentsGridPro
           <p className="muted queueFootnote">
             Valores atualizados pelos testes na seção acima.
           </p>
+          {snapshot ? (
+            <QueueLoadGauge queueLengths={snapshot.queueLengths} />
+          ) : null}
         </section>
 
         <section className="panel">
