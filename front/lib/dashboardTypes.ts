@@ -37,3 +37,8 @@ export type ClosedTicketsPage = {
   page: number;
   pageSize: number;
 };
+
+export type AutoReleaseScheduleEntry = {
+  deadlineMs: number;
+  durationMs: number;
+};
