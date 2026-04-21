@@ -1,4 +1,7 @@
-import type { DashboardSnapshot } from "../../lib/dashboardTypes";
+import type {
+  AutoReleaseScheduleEntry,
+  DashboardSnapshot,
+} from "../../lib/dashboardTypes";
 import { OPEN_PAGE_SIZE } from "../../lib/dashboardConstants";
 import { sortOpenTicketsForDisplay } from "../../lib/ticketDisplayUtils";
 import OpenTicketRow from "./openTicketRow";
@@ -12,6 +15,7 @@ export type OpenTicketsPanelProps = {
   pending: string | null;
   queueSimulateKey: QueueSimulateKey;
   autoReleaseEnabled: boolean;
+  releaseSchedule: Record<string, AutoReleaseScheduleEntry>;
   onCompleteTicket: (id: string) => Promise<void>;
 };
 
@@ -22,6 +26,7 @@ export default function OpenTicketsPanel({
   pending,
   queueSimulateKey,
   autoReleaseEnabled,
+  releaseSchedule,
   onCompleteTicket,
 }: OpenTicketsPanelProps) {
   return (
@@ -60,6 +65,7 @@ export default function OpenTicketsPanel({
                     pending={pending}
                     queueSimulateKey={queueSimulateKey}
                     autoReleaseEnabled={autoReleaseEnabled}
+                    releaseEntry={releaseSchedule[t.id]}
                     onComplete={onCompleteTicket}
                   />
                 ))}
