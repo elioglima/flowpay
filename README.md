@@ -70,7 +70,7 @@ As secções [Backend — `api/`](#backend--api) e [Frontend — `front/`](#fron
 | Times | `cards`, `loans`, `other` — roteados por **texto exato** de dois assuntos ou “demais” para outros. |
 | Capacidade | `MAX_CONCURRENT_PER_AGENT = 3`; seed com **6 atendentes** (2 por time). |
 | Fila | Tickets `queued` por time; promoção **FIFO** por `createdAt`. |
-| `activeAt` | Preenchido ao ficar `active`; usado no front para timer **15s** e “Execução”. |
+| `activeAt` | Preenchido ao ficar `active`; usado no front para o timer de auto-encerramento (intervalo **aleatório 5–15 s por ticket**) e “Execução”. |
 | Após encerrar | **200 ms** antes de tentar promover; **+500 ms** se existir `queued` naquele time. |
 
 **Assuntos com roteamento fixo (API):**
@@ -171,14 +171,17 @@ Foco em **lógica pura**: `resolveTeamBySubject`, `escapeRegex`, `mapTicket`, er
 | `app/page.tsx` | Página inicial — renderiza `DashboardShell`. |
 | `app/layout.tsx` | Layout raiz, fonte Inter, `viewport`, metadata FlowPay. |
 | `app/dashboardShell.tsx` | Estado, efeitos (fetch, SSE, debounce) e composição do painel. |
-| `app/components/` | Componentes de UI (cabeçalho, simulação, filas, tickets abertos/encerrados, gráficos, rodapé). |
+| `app/components/` | Componentes de UI (cabeçalho, simulação, filas, medidor de carga na fila, tickets abertos/encerrados, gráficos, rodapé). |
+| `app/components/queueLoadGauge.tsx` | Medidor semicircular da carga total na fila (soma dos times; escala em `QUEUE_GAUGE_SCALE_MAX`). |
 | `app/dashboardCharts.tsx` | Gráficos Recharts (filas, ocupação, abertos por time, concluídos por time). |
 | `app/globals.css` | Tema escuro slate/navy, painéis, listas, responsivo, safe-area. |
 | `lib/getApiBaseUrl.ts` | Base URL: `NEXT_PUBLIC_API_URL` ou `http://localhost:3001`. |
-| `lib/dashboardConstants.ts` | Constantes do painel (paginação, tempos, rótulos por time). |
-| `lib/ticketDisplayUtils.ts` | Ordenação e formatação de datas dos tickets. |
+| `lib/dashboardConstants.ts` | Constantes do painel (paginação, faixa de auto-release, escala do medidor de fila, rótulos por time). |
+| `lib/autoReleaseRandomUtils.ts` | Duração aleatória de auto-encerramento entre `AUTO_RELEASE_MS_MIN` e `AUTO_RELEASE_MS_MAX`. |
+| `lib/queueGaugeUtils.ts` | Soma das filas por time e percentagem para o medidor. |
+| `lib/ticketDisplayUtils.ts` | Ordenação, início do atendimento ativo e formatação de datas dos tickets. |
 | `lib/closedTicketsRangeUtils.ts` | Texto de intervalo da paginação dos encerrados. |
-| `lib/dashboardTypes.ts` | Tipos TS alinhados ao snapshot da API. |
+| `lib/dashboardTypes.ts` | Tipos TS alinhados ao snapshot da API (inclui `AutoReleaseScheduleEntry` para o timer por ticket). |
 | `lib/subjectCatalog.ts` | Assuntos usados nos botões de teste (alinhados à API). |
 | `lib/agentAccentColors.ts` | Paleta por atendente + `getAgentAccentColor`. |
 | `lib/agentUserIcon.tsx` | Ícone de utilizador na lista de atendentes. |
@@ -195,10 +198,11 @@ Foco em **lógica pura**: `resolveTeamBySubject`, `escapeRegex`, `mapTicket`, er
 - **Carregamento inicial:** `GET /api/dashboard`.  
 - **Tempo real:** `EventSource` em `/api/stream`; atualiza estado ao receber `type: "dashboard"`.  
 - **Testes e simulação:** pedido único por assunto; lotes por time (`QUEUE_SIMULATE_BURST` = 18); lote misto com contagens em `mixedBatchByTeam` (ex.: 7+13+17); **Reiniciar tudo** → `POST /api/tickets/reset`.  
-- **Checkbox auto-encerramento:** após **15 s** por ticket ativo (base `activeAt`), chama `POST /api/tickets/:id/complete`.  
+- **Checkbox auto-encerramento:** para cada ticket ativo é sorteado um intervalo entre **5 e 15 s** (a partir de `activeAt`); ao expirar, chama `POST /api/tickets/:id/complete`. O estado fica em `releaseSchedule` no shell (deadline e duração por id).  
+- **Medidor de carga na fila:** semicírculo com soma dos registos em fila de todos os times; escala visual até **`QUEUE_GAUGE_SCALE_MAX` (200)** — ver `queueLoadGauge` e `queueGaugeUtils`.  
 - **Filas por time:** contagens + ícones por time.  
 - **Atendentes:** lista com ícone de utilizador e cor por atendente.  
-- **Em aberto:** paginação (**20** por página); cartões com ícone grande por time, tarja/cor por atendente, barra de tempo, botão Encerrar.  
+- **Em aberto:** paginação (**20** por página); cartões com ícone grande por time, tarja/cor por atendente, barra de tempo alinhada ao intervalo **5–15 s** do ticket, botão Encerrar.  
 - **Monitoramento:** gráficos com dados do snapshot.  
 - **Encerrados:** `GET /api/tickets/closed` com debounce de pesquisa, paginação (**10** por página).  
 - **Rodapé:** nome **elio.lima**, e-mail e data “Atualizado em” (data local do browser).  
@@ -207,7 +211,8 @@ Foco em **lógica pura**: `resolveTeamBySubject`, `escapeRegex`, `mapTicket`, er
 
 | Constante | Valor (típico) |
 |-----------|----------------|
-| `AUTO_RELEASE_MS` | 15000 (15 s) |
+| `AUTO_RELEASE_MS_MIN` / `AUTO_RELEASE_MS_MAX` | 5000 / 15000 (faixa **5–15 s** por pedido na simulação de auto-encerramento) |
+| `QUEUE_GAUGE_SCALE_MAX` | 200 (teto da escala do medidor de soma das filas) |
 | `QUEUE_SIMULATE_BURST` | 18 |
 | `OPEN_PAGE_SIZE` | 20 |
 | `CLOSED_PAGE_SIZE` | 10 |
@@ -269,7 +274,6 @@ docker compose -f docker/docker-compose.yml up --build
 
 | Item | Descrição |
 |------|-----------|
-| [`mds/logs.md`](mds/logs.md) | Registo de contexto e decisões do projeto. |
 | `docker/` | Compose e imagens para API, front e MongoDB. |
 
 ---
