@@ -1,0 +1,9 @@
+# Pacote API — o .gitignore da raiz já cobre a maior parte; isto reforça ao trabalhar só em api/
+
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
