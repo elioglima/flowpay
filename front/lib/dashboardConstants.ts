@@ -1,5 +1,9 @@
-export const AUTO_RELEASE_MS = 15000;
+export const AUTO_RELEASE_MS_MIN = 5000;
+export const AUTO_RELEASE_MS_MAX = 15000;
+
 export const QUEUE_SIMULATE_BURST = 18;
+
+export const QUEUE_GAUGE_SCALE_MAX = 200;
 
 export const CLOSED_PAGE_SIZE = 10;
 export const OPEN_PAGE_SIZE = 20;
