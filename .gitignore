@@ -44,9 +44,9 @@ Thumbs.db
 *.pem
 *.p12
 
-# Capturas e vídeos locais (binários pesados)
-telas+video/
-
 # Evitar metadata de repo aninhado (se existir)
 api/.git/
 front/.git/
+front/node_modules/
+api/node_modules/
+docker/node_modules/
