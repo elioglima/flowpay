@@ -44,6 +44,8 @@ Thumbs.db
 *.pem
 *.p12
 
+telas+video/
+
 # Evitar metadata de repo aninhado (se existir)
 api/.git/
 front/.git/
